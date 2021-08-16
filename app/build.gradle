@@ -78,6 +78,7 @@ dependencies {
 
     // DataStore
     implementation "androidx.datastore:datastore-preferences:$dataStoreVersion"
+    //implementation "androidx.datastore:datastore-preferences-core:$dataStoreVersion"
 }
 
 kapt {

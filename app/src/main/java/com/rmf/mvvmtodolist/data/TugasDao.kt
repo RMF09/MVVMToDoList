@@ -1,7 +1,6 @@
 package com.rmf.mvvmtodolist.data
 
 import androidx.room.*
-import com.rmf.mvvmtodolist.ui.tugas.SortOrder
 import kotlinx.coroutines.flow.Flow
 
 @Dao

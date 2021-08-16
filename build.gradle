@@ -6,7 +6,7 @@ buildscript {
         // App dependencies
         kotlin_version = "1.5.10"
         coroutinesVersion = "1.5.0"
-        dataStoreVersion = "1.0.0"
+        dataStoreVersion = "1.0.0-alpha01"
         espressoVersion = "3.3.0"
         fragmentVersion = "1.3.6"
         hiltAndroidXVersion = "1.0.0-alpha01"
