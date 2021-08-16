@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.rmf.mvvmtodolist.data.DataTugas
 import com.rmf.mvvmtodolist.databinding.ItemTugasBinding
 
-class TugasAdapter : ListAdapter<DataTugas, TugasAdapter.ViewHolder>(DiffCallback()) {
+class TugasAdapter(private val listener: OnItemClickListener) : ListAdapter<DataTugas, TugasAdapter.ViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemTugasBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -21,8 +21,26 @@ class TugasAdapter : ListAdapter<DataTugas, TugasAdapter.ViewHolder>(DiffCallbac
         holder.bind(data)
     }
 
-    class ViewHolder(private val binding: ItemTugasBinding) :
+    inner class ViewHolder(private val binding: ItemTugasBinding) :
         RecyclerView.ViewHolder(binding.root) {
+
+        init {
+            with(binding){
+                root.setOnClickListener {
+                    if(adapterPosition != RecyclerView.NO_POSITION){
+                        val dataTugas = getItem(adapterPosition)
+                        listener.onItemClick(dataTugas)
+                    }
+                }
+
+                checkbox.setOnClickListener {
+                    if(adapterPosition != RecyclerView.NO_POSITION){
+                        val dataTugas = getItem(adapterPosition)
+                        listener.onCheckBoxClick(dataTugas,checkbox.isChecked)
+                    }
+                }
+            }
+        }
 
         fun bind(dataTugas: DataTugas) {
             with(binding) {
@@ -32,6 +50,11 @@ class TugasAdapter : ListAdapter<DataTugas, TugasAdapter.ViewHolder>(DiffCallbac
                 imagePriority.isVisible = dataTugas.important
             }
         }
+    }
+
+    interface OnItemClickListener{
+        fun onItemClick(dataTugas: DataTugas)
+        fun onCheckBoxClick(dataTugas: DataTugas, isChecke: Boolean)
     }
 
     class DiffCallback : DiffUtil.ItemCallback<DataTugas>() {
