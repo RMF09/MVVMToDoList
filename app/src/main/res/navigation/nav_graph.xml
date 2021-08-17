@@ -8,11 +8,24 @@
     <fragment
         android:id="@+id/tugasFragment"
         android:name="com.rmf.mvvmtodolist.ui.tugas.TugasFragment"
-        android:label="fragment_tugas"
-        tools:layout="@layout/fragment_tugas" />
+        android:label="Tugas"
+        tools:layout="@layout/fragment_tugas">
+        <action
+            android:id="@+id/action_tugasFragment_to_editFragment"
+            app:destination="@id/editFragment" />
+    </fragment>
     <fragment
         android:id="@+id/editFragment"
-        android:name="com.rmf.mvvmtodolist.ui.edit.EditFragment"
-        android:label="fragment_edit_tugas"
-        tools:layout="@layout/fragment_edit_tugas" />
+        android:name="com.rmf.mvvmtodolist.ui.addedittugas.AddEditFragment"
+        android:label="{title}"
+        tools:layout="@layout/fragment_edit_tugas" >
+        <argument
+            android:name="tugas"
+            app:argType="com.rmf.mvvmtodolist.data.DataTugas"
+            app:nullable="true"
+            android:defaultValue="@null" />
+        <argument
+            android:name="title"
+            app:argType="string" />
+    </fragment>
 </navigation>

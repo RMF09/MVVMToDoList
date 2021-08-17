@@ -1,14 +1,17 @@
 package com.rmf.mvvmtodolist.ui.tugas
 
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.setFragmentResultListener
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -17,6 +20,7 @@ import com.rmf.mvvmtodolist.R
 import com.rmf.mvvmtodolist.data.DataTugas
 import com.rmf.mvvmtodolist.data.SortOrder
 import com.rmf.mvvmtodolist.databinding.FragmentTugasBinding
+import com.rmf.mvvmtodolist.utils.exhaustif
 import com.rmf.mvvmtodolist.utils.onQueryTextChanged
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,37 +49,72 @@ class TugasFragment : Fragment(R.layout.fragment_tugas), TugasAdapter.OnItemClic
             }
 
             ItemTouchHelper(object :
-                ItemTouchHelper.SimpleCallback(0,
-                    ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+                ItemTouchHelper.SimpleCallback(
+                    0,
+                    ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+                ) {
 
                 override fun onMove(
                     recyclerView: RecyclerView,
                     viewHolder: RecyclerView.ViewHolder,
                     target: RecyclerView.ViewHolder
-                ): Boolean { return false }
+                ): Boolean {
+                    return false
+                }
 
                 override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                     val dataTugas = tugasAdapter.currentList[viewHolder.adapterPosition]
                     viewModel.onTaskSwiped(dataTugas)
                 }
             }).attachToRecyclerView(rv)
+
+            btnAdd.setOnClickListener {
+                viewModel.onAddTugasBaruClick()
+            }
         }
+
+        setFragmentResultListener("add_edit_request") { _, bundle ->
+            val result = bundle.getInt("add_edit_result")
+            viewModel.onAddEditResult(result)
+
+        }
+
         viewModel.tugas.observe(viewLifecycleOwner) {
             tugasAdapter.submitList(it)
         }
 
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             viewModel.tugasEvent.collect { event ->
-                when(event){
+                when (event) {
                     is TugasViewModel.TugasEvent.ShowUndoTugasMessage -> {
-                        Snackbar.make(requireView(),"Tugas dihapus", Snackbar.LENGTH_LONG)
-                            .setAction("Urungkan"){
+                        Snackbar.make(requireView(), "Tugas dihapus", Snackbar.LENGTH_LONG)
+                            .setAction("Urungkan") {
                                 viewModel.onUndoDeletedClick(event.dataTugas)
                             }.show()
                     }
-                }
+                    is TugasViewModel.TugasEvent.NavigateToAddTugasScreen -> {
+                        val action =
+                            TugasFragmentDirections.actionTugasFragmentToEditFragment(title = "Tambah Tugas Baru")
+                        findNavController().navigate(action)
+                    }
+
+                    is TugasViewModel.TugasEvent.NavigateToEditTugasScreen -> {
+                        val action = TugasFragmentDirections.actionTugasFragmentToEditFragment(
+                            event.dataTugas,
+                            "Edit Tugas ${event.dataTugas.id}"
+                        )
+                        findNavController().navigate(action)
+
+                    }
+                    is TugasViewModel.TugasEvent.ShowMessageTugasDisimpan -> {
+                        Snackbar.make(requireView(), event.msg, Snackbar.LENGTH_SHORT)
+                           .show()
+                    }
+                }.exhaustif
             }
         }
+
+
 
         setHasOptionsMenu(true)
     }
@@ -97,6 +136,8 @@ class TugasFragment : Fragment(R.layout.fragment_tugas), TugasAdapter.OnItemClic
         searchView.onQueryTextChanged {
             viewModel.searchQuery.value = it
         }
+        Log.d("Perubahan", "onCreateOptionsMenu: ${viewModel.searchQuery.value}")
+
 
         viewLifecycleOwner.lifecycleScope.launch {
             menu.findItem(R.id.action_hide_compeleted_tasks).isChecked =

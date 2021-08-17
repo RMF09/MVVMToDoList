@@ -1,14 +1,13 @@
 package com.rmf.mvvmtodolist.ui.tugas
 
+import androidx.hilt.Assisted
 import androidx.hilt.lifecycle.ViewModelInject
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asLiveData
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import com.rmf.mvvmtodolist.data.DataTugas
 import com.rmf.mvvmtodolist.data.PreferencesManager
 import com.rmf.mvvmtodolist.data.SortOrder
 import com.rmf.mvvmtodolist.data.TugasDao
+import com.rmf.mvvmtodolist.ui.ADD_TUGAS_RESULT_OK
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,10 +19,14 @@ import javax.inject.Inject
 
 class TugasViewModel @ViewModelInject constructor(
     private val tugasDao: TugasDao,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    @Assisted private val state: SavedStateHandle
 ) : ViewModel() {
 
-    val searchQuery = MutableStateFlow("")//default
+
+    val searchQuery = state.getLiveData("searchQuery","")
+
+    //val searchQuery = MutableStateFlow("")//default
 
     val prefFlow = preferencesManager.preferencesFlow
 
@@ -35,17 +38,14 @@ class TugasViewModel @ViewModelInject constructor(
     val tugasEvent = tugasEventChannel.receiveAsFlow()
 
     val tugasFlow =
-        combine(searchQuery, prefFlow) { query, filterPref ->
+        combine(searchQuery.asFlow(), prefFlow) { query, filterPref ->
             Pair(query, filterPref)
 
         }.flatMapLatest { (query, filterPref) ->
             tugasDao.getTugas(query, filterPref.sortOrder, filterPref.hideCompleted)
         }
 
-    @ExperimentalCoroutinesApi
     val tugas = tugasFlow.asLiveData()
-
-    @ExperimentalCoroutinesApi
 
     fun onSortOrderSelected(sortOrder: SortOrder) = viewModelScope.launch {
         preferencesManager.updateSortOrder(sortOrder)
@@ -55,9 +55,6 @@ class TugasViewModel @ViewModelInject constructor(
         preferencesManager.updateHideCompleted(hideCompleted)
     }
 
-    fun onTaskSelected(dataTugas: DataTugas){
-
-    }
 
     fun onTaskCheckedChanged(dataTugas: DataTugas, isChecked: Boolean) = viewModelScope.launch {
         tugasDao.update(dataTugas.copy(completed = isChecked))
@@ -72,8 +69,29 @@ class TugasViewModel @ViewModelInject constructor(
         tugasDao.insert(dataTugas)
     }
 
+    fun onAddTugasBaruClick() = viewModelScope.launch {
+        tugasEventChannel.send(TugasEvent.NavigateToAddTugasScreen)
+    }
+
+    fun onTaskSelected(dataTugas: DataTugas) = viewModelScope.launch {
+        tugasEventChannel.send(TugasEvent.NavigateToEditTugasScreen(dataTugas))
+    }
+    fun onAddEditResult(result: Int) {
+        when(result){
+            ADD_TUGAS_RESULT_OK -> showTugasDisimpanConfirmationMessage("Tugas ditambahkan")
+            ADD_TUGAS_RESULT_OK -> showTugasDisimpanConfirmationMessage("Tugas diperbarui")
+        }
+    }
+
+    private fun showTugasDisimpanConfirmationMessage(msg : String) = viewModelScope.launch {
+        tugasEventChannel.send(TugasEvent.ShowMessageTugasDisimpan(msg))
+    }
+
     sealed class TugasEvent{
+        object NavigateToAddTugasScreen : TugasEvent()
+        data class NavigateToEditTugasScreen(val dataTugas: DataTugas) : TugasEvent()
         data class ShowUndoTugasMessage(val dataTugas: DataTugas) : TugasEvent()
+        data class ShowMessageTugasDisimpan(val msg: String) : TugasEvent()
     }
 
 }
