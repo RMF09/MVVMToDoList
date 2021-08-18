@@ -34,4 +34,7 @@ interface TugasDao {
     @Delete
     suspend fun delete(tugas: DataTugas)
 
+    @Query("DELETE from datatugas WHERE completed = 1")
+    suspend fun deleteCompletedTugas()
+
 }

@@ -8,6 +8,7 @@ import com.rmf.mvvmtodolist.data.PreferencesManager
 import com.rmf.mvvmtodolist.data.SortOrder
 import com.rmf.mvvmtodolist.data.TugasDao
 import com.rmf.mvvmtodolist.ui.ADD_TUGAS_RESULT_OK
+import com.rmf.mvvmtodolist.ui.EDIT_TUGAS_RESULT_OK
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +25,7 @@ class TugasViewModel @ViewModelInject constructor(
 ) : ViewModel() {
 
 
-    val searchQuery = state.getLiveData("searchQuery","")
+    val searchQuery = state.getLiveData("searchQuery", "")
 
     //val searchQuery = MutableStateFlow("")//default
 
@@ -60,7 +61,7 @@ class TugasViewModel @ViewModelInject constructor(
         tugasDao.update(dataTugas.copy(completed = isChecked))
     }
 
-    fun onTaskSwiped(dataTugas: DataTugas) =  viewModelScope.launch {
+    fun onTaskSwiped(dataTugas: DataTugas) = viewModelScope.launch {
         tugasDao.delete(dataTugas)
         tugasEventChannel.send(TugasEvent.ShowUndoTugasMessage(dataTugas))
     }
@@ -76,22 +77,28 @@ class TugasViewModel @ViewModelInject constructor(
     fun onTaskSelected(dataTugas: DataTugas) = viewModelScope.launch {
         tugasEventChannel.send(TugasEvent.NavigateToEditTugasScreen(dataTugas))
     }
+
     fun onAddEditResult(result: Int) {
-        when(result){
+        when (result) {
             ADD_TUGAS_RESULT_OK -> showTugasDisimpanConfirmationMessage("Tugas ditambahkan")
-            ADD_TUGAS_RESULT_OK -> showTugasDisimpanConfirmationMessage("Tugas diperbarui")
+            EDIT_TUGAS_RESULT_OK -> showTugasDisimpanConfirmationMessage("Tugas diperbarui")
         }
     }
 
-    private fun showTugasDisimpanConfirmationMessage(msg : String) = viewModelScope.launch {
+    private fun showTugasDisimpanConfirmationMessage(msg: String) = viewModelScope.launch {
         tugasEventChannel.send(TugasEvent.ShowMessageTugasDisimpan(msg))
     }
 
-    sealed class TugasEvent{
+    fun onDeleteAllCompeletedTugas() = viewModelScope.launch {
+        tugasEventChannel.send(TugasEvent.NavigateToDialogDeleteAllCompleted)
+    }
+
+    sealed class TugasEvent {
         object NavigateToAddTugasScreen : TugasEvent()
         data class NavigateToEditTugasScreen(val dataTugas: DataTugas) : TugasEvent()
         data class ShowUndoTugasMessage(val dataTugas: DataTugas) : TugasEvent()
         data class ShowMessageTugasDisimpan(val msg: String) : TugasEvent()
+        object NavigateToDialogDeleteAllCompleted : TugasEvent()
     }
 
 }
